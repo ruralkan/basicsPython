@@ -1,5 +1,5 @@
 """Model for aircraft flights"""
-"""Counting available seats"""
+"""Polymorphism and ducktyping in make_boarding_card() """
 
 class Flight:
     """We'll perform a small refactoring and extract the seat designator parsing 
@@ -28,7 +28,7 @@ class Flight:
 
     def airline(self):
         return self._number[:2]
-    
+     
     def aircraft_model(self):
         return self._aircraft.model()
     
@@ -97,6 +97,18 @@ class Flight:
     def num_available_seats(self):
         return sum(sum(1 for s in row.values() if s is None) for row in self._seating if row is not None)
 
+    def make_boarding_cards(self, card_printer):
+        for passenger, seat in sorted(self._passenger_seats()):
+            card_printer(passenger, seat, self.number(), self.aircraft_model())
+    
+    def _passenger_seats(self):
+        """An iterable series of passenger seating allocations."""
+        row_numbers, seat_letters = self._aircraft.seating_plan()
+        for row in row_numbers:
+            for letter in seat_letters:
+                passenger = self._seating[row][letter]
+                if passenger is not None:
+                    yield (passenger, "{}{}".format(row, letter))
 
 
 class Aircraft:
@@ -128,13 +140,32 @@ def make_flight():
     f.allocate_seat('1D', 'Richard Hickey')
     return f
 
+def console_card_printer(passenger, seat, flight_number, aircraft):
+    """
+    Rather than hace a card printer query all the passengers details from the flight, we'll follow the 
+    object- oriented design principle of "Tell! Don't ask", and have the Fligth tell a simple card printing function
+    The card printer doesnt know anything about Flights or Aircraft it's very loosely coupled
+    The make_boarding_card() method didn't need to know about an actual or concrete card printing type
+    only the abstrac details of its interface. This interface is essentially just ther order of it's arguments
+    """
+    
+    output = "| Name: {0}"     \
+             "  Flight: {1}"   \
+             "  Seat: {2}"     \
+             "  Aircraft: {3}" \
+             "|".format(passenger, seat, flight_number, aircraft)
+    banner = '+' + '-' * (len(output) - 2) + '+'
+    border = '|' + ' ' * (len(output) - 2) + '|'
+    lines = [banner,border, output, border, banner]
+    card = '\n'.join(lines)
+    print(card)
+    print()
+
+
 """
 In the REPL
-from airtravel import make_flight
+from airtravel import console_card_printer, make_flight
 f = make_flight()
-f.relocate_passenger('12A', '15D')
-from pprint import pprint as pp
-pp(f._seating)
-f.num_available_seats()
+f.make_boarding_cards(console_card_printer)
 """
 
