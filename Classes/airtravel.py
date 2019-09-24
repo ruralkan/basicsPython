@@ -1,15 +1,5 @@
 """Model for aircraft flights"""
-""" Collaborating classes"""
-"""
-The law of Demeter is an object- oriented design principle that says you should never
-call methods on objcts you receive from other calls. O, put another way: Only talk to
-your immediate friend
-
-We'll now modify our Flight class to accept an aircraft object when it is constructed,
-and we'll follow the Law of Demeter by adding a method to report the aircraft model.
-This method delegate to Aircraft on bhelaf of the client rater than allowing the client 
-to "reach through" the Fligth and interrogate the Aircraft object directly.
-"""
+"""Allocating seats to passengers"""
 
 class Flight:
     """A flight with a particular passenger aircraft"""
@@ -26,6 +16,11 @@ class Flight:
 
         self._number = number
         self._aircraft = aircraft
+        # we retrieve the seating plan for the aricraft and use tuple unpacking to put
+        # the row and seat identiiers into local variables rows and seats
+        # In the second line we create a list for the seat allocation
+        rows, seats = self._aircraft.seating_plan()
+        self._seating = [None] + [{letter: None for letter in seats} for _ in rows]
     
     def number(self):
         return self._number
@@ -35,6 +30,33 @@ class Flight:
     
     def aircraft_model(self):
         return self._aircraft.model()
+    
+    def allocate_seat(self, seat, passenger):
+        """Allocate a seat to a passenger
+        Args:
+            seat: A seat designator such as '12C' or '21F'
+            passenger: The passenger name
+        Raises:
+            ValueError: If the seat is unavailable
+        """
+        rows, seat_letters  = self._aircraft.seating_plan()
+        letter = seat[-1]
+        if letter not in seat_letters:
+            raise ValueError("Invalid seat letter {}".format(letter))
+
+        row_text = seat[:-1]
+        try:
+            row = int(row_text)
+        except ValueError:
+            raise ValueError("Invalid seat row {}".format(row_text))
+
+        if row not in rows:
+            raise ValueError("Invalid row number {}".format(row))
+
+        if self._seating[row][letter] is not None:
+            raise ValueError("Seat {} already occupied".format(seat))
+
+        self._seating[row][letter] = passenger
 
 
 
@@ -53,14 +75,23 @@ class Aircraft:
         
     def seating_plan(self):
         return (range(1, self._num_rows + 1), 
-                "ABCDEFGHJK"[:self._num_seat_per_row])
+                "ABCDEFGHJK"[:self._num_seats_per_row])
 
 
 """
 In the REPL
 from airtravel import *
+from pprint import pprint as pp
 f = Flight("BA758",Aircraft("G-EUPT", "Airbus A319", num_rows=22,
             num_seats_per_row=6))
-f.aircraft()
+f.allocate_seat('12A', 'Guido Van Rossum')
+f.allocate_seat('12A', 'Rasmus Lerdorf')
+f.allocate_seat('15F', 'Bjarne Stroustrup')
+f.allocate_seat('15E', 'Anders Hejsberg')
+f.allocate_seat('E27', 'Yukihiro Matsumoto')
+f.allocate_seat('1C', 'Jhon McCarthy')
+f.allocate_seat('1D', 'Richard Hickey')
+f.allocate_seat('DD', 'Larry Wall')
+pp(f._seating)
 """
 
