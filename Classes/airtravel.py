@@ -1,5 +1,5 @@
 """Model for aircraft flights"""
-"""Implementing relocate_passenger()"""
+"""Counting available seats"""
 
 class Flight:
     """We'll perform a small refactoring and extract the seat designator parsing 
@@ -94,6 +94,10 @@ class Flight:
         self._seating[to_row][to_letter] = self._seating[from_row][from_letter]
         self._seating[from_row][from_letter] = None
 
+    def num_available_seats(self):
+        return sum(sum(1 for s in row.values() if s is None) for row in self._seating if row is not None)
+
+
 
 class Aircraft:
     def __init__(self, registration, model, num_rows, num_seats_per_row):
@@ -131,5 +135,6 @@ f = make_flight()
 f.relocate_passenger('12A', '15D')
 from pprint import pprint as pp
 pp(f._seating)
+f.num_available_seats()
 """
 
