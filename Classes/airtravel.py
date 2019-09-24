@@ -1,8 +1,9 @@
 """Model for aircraft flights"""
-"""Allocating seats to passengers"""
+"""Implementing relocate_passenger()"""
 
 class Flight:
-    """A flight with a particular passenger aircraft"""
+    """We'll perform a small refactoring and extract the seat designator parsing 
+    validaton logic into ait's own method parse_seat()"""
 
     def __init__(self, number, aircraft):
         if not number[:2].isalpha():
@@ -33,11 +34,30 @@ class Flight:
     
     def allocate_seat(self, seat, passenger):
         """Allocate a seat to a passenger
+        
         Args:
             seat: A seat designator such as '12C' or '21F'
             passenger: The passenger name
+        
         Raises:
             ValueError: If the seat is unavailable
+        """
+        row, letter = self._parse_seat(seat)
+
+        if self._seating[row][letter] is not None:
+            raise ValueError("Seat {} already occupied".format(seat))
+
+        self._seating[row][letter] = passenger
+    
+
+    def _parse_seat(self, seat):
+        """Parse a seat designator into a valid row and letter
+        
+        Args:
+            seat: A seat designator such as 12F
+
+        Returns:
+            A tuple containing an integer, string for row and seat
         """
         rows, seat_letters  = self._aircraft.seating_plan()
         letter = seat[-1]
@@ -52,12 +72,27 @@ class Flight:
 
         if row not in rows:
             raise ValueError("Invalid row number {}".format(row))
-
-        if self._seating[row][letter] is not None:
-            raise ValueError("Seat {} already occupied".format(seat))
-
-        self._seating[row][letter] = passenger
-
+        
+        return row, letter
+    
+    def relocate_passenger(self, from_seat, to_seat):
+        """Relocate a passenger to a different seat
+        Args:
+            from_seat: The existing seat designator for 
+                       the passenger to be moved
+            
+            to_seat: The new seat designator.
+        """
+        from_row, from_letter = self._parse_seat(from_seat)
+        if self._seating[from_row][from_letter] is None:
+            raise ValueError("No passenger to relocate in seat {}".format(from_seat))
+        
+        to_row, to_letter = self._parse_seat(to_seat)
+        if self._seating[to_row][to_letter] is not None:
+            raise ValueError("already occupied {}".format(to_seat))
+        
+        self._seating[to_row][to_letter] = self._seating[from_row][from_letter]
+        self._seating[from_row][from_letter] = None
 
 
 class Aircraft:
@@ -78,20 +113,23 @@ class Aircraft:
                 "ABCDEFGHJK"[:self._num_seats_per_row])
 
 
+
+def make_flight():
+    f = Flight("BA758",Aircraft("G-EUPT", "Airbus A319", num_rows=22,
+            num_seats_per_row=6))
+    f.allocate_seat('12A', 'Guido Van Rossum')
+    f.allocate_seat('15F', 'Bjarne Stroustrup')
+    f.allocate_seat('15E', 'Anders Hejsberg')
+    f.allocate_seat('1C', 'Jhon McCarthy')
+    f.allocate_seat('1D', 'Richard Hickey')
+    return f
+
 """
 In the REPL
-from airtravel import *
+from airtravel import make_flight
+f = make_flight()
+f.relocate_passenger('12A', '15D')
 from pprint import pprint as pp
-f = Flight("BA758",Aircraft("G-EUPT", "Airbus A319", num_rows=22,
-            num_seats_per_row=6))
-f.allocate_seat('12A', 'Guido Van Rossum')
-f.allocate_seat('12A', 'Rasmus Lerdorf')
-f.allocate_seat('15F', 'Bjarne Stroustrup')
-f.allocate_seat('15E', 'Anders Hejsberg')
-f.allocate_seat('E27', 'Yukihiro Matsumoto')
-f.allocate_seat('1C', 'Jhon McCarthy')
-f.allocate_seat('1D', 'Richard Hickey')
-f.allocate_seat('DD', 'Larry Wall')
 pp(f._seating)
 """
 
